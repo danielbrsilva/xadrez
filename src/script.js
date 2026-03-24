@@ -6,7 +6,7 @@ function criarTabuleiro() {
             const casa = document.createElement("div"); // Criando um elemento div para cada casa do tabuleiro
             casa.classList.add("casa"); // Adicionando a classe "casa" para estilização
             const letra = String.fromCharCode(64 + i + 1); // Convertendo número para letra (A-H)
-            casa.id = `${letra}${j + 1}`; // Colocando o ID na casa (Exemplo: A1, B2, etc.)
+            casa.id = `${letra}${8 - j}`; // Colocando o ID na casa (Exemplo: A1, B2, etc.)
             if ((i + j) % 2 === 0) {
                 casa.classList.add("casa_clara"); // Adicionando a classe "casa_clara" para casas claras
             } else {
@@ -18,3 +18,4 @@ function criarTabuleiro() {
 }
 
 criarTabuleiro();
+
