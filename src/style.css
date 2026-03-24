@@ -1,0 +1,9 @@
+#tabuleiro{
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: 400px;
+    height: 400x;
+    border: 2px solid black;
+    background-color: red;
+}
