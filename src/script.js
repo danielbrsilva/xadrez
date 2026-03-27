@@ -5,11 +5,12 @@ const tabuleiro = document.getElementById("tabuleiro");
 function criarTabuleiro() {
     for (let i = 0; i < 8; i++) { // Loop para criar as linhas do tabuleiro
         for (let j = 0; j < 8; j++) { // Loop para criar as colunas do tabuleiro
-            console.log("Adicionando o tabuleiro", i, j); // Imprimindo no console a posição da casa que está sendo adicionada ao tabuleiro (coordenadas i e j)
+            
             const casa = document.createElement("div"); // Criando um elemento div para cada casa do tabuleiro
             casa.classList.add("casa"); // Adicionando a classe "casa" para estilização
             const letra = String.fromCharCode(65 + j); // Convertendo número para letra (A-H)
             casa.id = `${letra}${8 - i}`; // Colocando o ID na casa (Exemplo: A1, B2, etc.)
+            console.log(`Adicionando o tabuleiro: ${letra}${8 - i}`); // Imprimindo no console a posição da casa que está sendo adicionada ao tabuleiro usando o formato de letra e número (Exemplo: A1, B2, etc.)
             if ((i + j) % 2 === 0) {
                 casa.classList.add("casa_clara"); // Adicionando a classe "casa_clara" para casas claras
             } else {
@@ -130,6 +131,19 @@ function cliqueCasa(i, j) { // Função para lidar com o clique em uma casa do t
     }
 
     const pecaOrigem = pecas_tabuleiro[origem.i][origem.j]; // Obtendo a peça que está na posição de origem (a peça selecionada) usando as coordenadas armazenadas em origem
+    const pecaDestino = pecas_tabuleiro[i][j]; // Obtendo a peça que está na posição de destino (a casa clicada) usando as coordenadas i e j
+
+    if (pecaDestino !== "") {// Verificando se há uma peça na posição de destino (pecaDestino não é uma string vazia)
+
+        const mesmaCorOrigem = pecaOrigem === pecaOrigem.toUpperCase();// Verificando se a peça de origem é branca comparando o caractere da peça com sua versão em maiúscula (se for igual, é branca)
+        const mesmaCorDestino = pecaDestino === pecaDestino.toUpperCase();// Verificando se a peça de destino é branca comparando o caractere da peça com sua versão em maiúscula (se for igual, é branca)
+
+        if (mesmaCorOrigem === mesmaCorDestino) {// Verificando se a peça de origem e a peça de destino são da mesma cor (ambas brancas ou ambas pretas)
+                console.log("Não pode comer peça da mesma cor!");// Imprimindo no console que não é permitido mover para uma casa ocupada por uma peça da mesma cor
+                return;
+            }
+    }
+    
     pecas_tabuleiro[i][j] = pecaOrigem; // Movendo a peça da posição de origem para a posição clicada (destino) no tabuleiro, atualizando o array pecas_tabuleiro com a nova posição da peça
     pecas_tabuleiro[origem.i][origem.j] = ""; // Limpando a posição de origem no tabuleiro, definindo-a como uma string vazia para indicar que não há mais uma peça nessa posição
 
