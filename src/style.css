@@ -74,7 +74,8 @@ h1 {
 
 .files {
     display: flex;
-    margin-left: 28px;
+    justify-content: space-between;
+    width: 512px;
 }
 
 .file-label {
