@@ -339,10 +339,12 @@ function clicarCasa(i, j) {
     let notacao;
     if (eRoque) {
         notacao = ladoRei ? "O-O" : "O-O-O";
-    } else if (eEP) {
-        notacao = `${letraColuna(sj)}x${letraColuna(j)}${numeroLinha(i)} e.p.`;
     } else {
         notacao = `${nomePeca(pecaSelecionada)} ${letraColuna(sj)}${numeroLinha(si)}→${letraColuna(j)}${numeroLinha(i)}`;
+
+        if (eEP) {
+            notacao += " e.p.";
+        }
     }
     historico.push(`${turno === "branco" ? "♔" : "♚"} ${notacao}`);
 
