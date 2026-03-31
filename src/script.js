@@ -346,7 +346,7 @@ function clicarCasa(i, j) {
             notacao += " e.p.";
         }
     }
-    historico.push(`${turno === "branco" ? "♔" : "♚"} ${notacao}`);
+    historico.push(`${turno === "branco" ? "Brancas: " : "Pretas: "} ${notacao}`);
 
     // Verificar xeque / xeque-mate / afogamento para o oponente
     const oponente = turno === "branco" ? "preto" : "branco";
