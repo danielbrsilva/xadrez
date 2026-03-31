@@ -5,7 +5,7 @@
 }
 
 body {
-    background: #1a1a2e;
+    background: #385957;
     color: white;
     font-family: 'Inter', system-ui, sans-serif;
     min-height: 100vh;
@@ -213,7 +213,7 @@ h1 {
 }
 
 .status {
-    background: #16213e;
+    background: #2c4745;
     border-radius: 0.75rem;
     padding: 1rem;
     text-align: center;
@@ -248,7 +248,7 @@ h1 {
 }
 
 .btn-reiniciar {
-    background: #16213e;
+    background: #2c4745;
     color: #d1d5db;
 }
 
@@ -267,7 +267,7 @@ h1 {
 }
 
 .panel-box {
-    background: #16213e;
+    background: #2c4745;
     border-radius: 0.75rem;
     padding: 1rem;
 }
@@ -299,6 +299,7 @@ h1 {
 }
 
 .lance {
+    background-color: #314f4d;
     font-size: 0.75rem;
     color: #d1d5db;
     padding: 4px 8px;
@@ -306,7 +307,7 @@ h1 {
 }
 
 .lance-par {
-    background: #1a2744;
+    background: #426563;
 }
 
 .lance-num {
