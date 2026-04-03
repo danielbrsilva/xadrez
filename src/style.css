@@ -127,6 +127,14 @@ h1 {
     background: #aaa23a;
 }
 
+.rei-xeque {
+    background: #c2410c;
+}
+
+.rei-xequemate {
+    background: #dc2626;
+}
+
 /* ---- Peças ---- */
 
 .peca {
@@ -329,6 +337,83 @@ h1 {
     content: "• ";
 }
 
+/* ---- Modal de promoção ---- */
+
+.promocao-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.promocao-caixa {
+    background: #2c4745;
+    border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.promocao-titulo {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+}
+
+.promocao-opcoes {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.promocao-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.75rem 0.5rem;
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    background: #385957;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: inherit;
+    min-width: 68px;
+}
+
+.promocao-btn:hover {
+    border-color: #7fc97f;
+    background: #426563;
+}
+
+.promo-simbolo {
+    font-size: 2.25rem;
+    line-height: 1;
+}
+
+.promo-branca .promo-simbolo {
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.promo-preta .promo-simbolo {
+    color: #1a1a1a;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.promo-nome {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
 /* ---- RESPONSIVO (CELULAR) ---- */
 
 @media (max-width: 768px) {
@@ -351,5 +436,18 @@ h1 {
     .captured-bar {
         margin-left: 0;
         justify-content: center;
+    }
+
+    .promocao-opcoes {
+        gap: 0.5rem;
+    }
+
+    .promocao-btn {
+        min-width: 56px;
+        padding: 0.6rem 0.4rem;
+    }
+
+    .promo-simbolo {
+        font-size: 1.75rem;
     }
 }

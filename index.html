@@ -17,6 +17,7 @@
 
         <div class="game-container">
 
+            <!-- Tabuleiro -->
             <div class="board-section">
                 <div id="capturedBlack" class="captured-bar"></div>
 
@@ -45,14 +46,38 @@
                     <h3 class="panel-title">Como jogar</h3>
                     <ul class="como-jogar">
                         <li>Clique para selecionar uma peça</li>
-                        <li>Pontos no tabuleiro = movimentos válidos</li>
-                        <li>Borda verde = capitura possível</li>
-                        <li>Borda azul = roque disponível</li>
-                        <li>Borda marrom = en passant</li>
+                        <li>Pontos verdes = movimentos válidos</li>
+                        <li>Borda azul piscando = roque disponível</li>
+                        <li>Peão na última fileira = escolha a promoção</li>
                     </ul>
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- Modal de promoção do peão -->
+    <div id="promocaoModal" class="promocao-overlay">
+        <div class="promocao-caixa">
+            <p class="promocao-titulo">Promover peão</p>
+            <div class="promocao-opcoes">
+                <button class="promocao-btn" data-peca="Q">
+                    <span class="promo-simbolo">♕</span>
+                    <span class="promo-nome">Dama</span>
+                </button>
+                <button class="promocao-btn" data-peca="R">
+                    <span class="promo-simbolo">♖</span>
+                    <span class="promo-nome">Torre</span>
+                </button>
+                <button class="promocao-btn" data-peca="B">
+                    <span class="promo-simbolo">♗</span>
+                    <span class="promo-nome">Bispo</span>
+                </button>
+                <button class="promocao-btn" data-peca="N">
+                    <span class="promo-simbolo">♘</span>
+                    <span class="promo-nome">Cavalo</span>
+                </button>
+            </div>
         </div>
     </div>
 

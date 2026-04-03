@@ -1,7 +1,7 @@
 // ============================================================
 //  Xadrez — HTML + CSS + JS puro
 //  Inclui: todas as peças, xeque, xeque-mate, afogamento,
-//          roque e en passant
+//          roque, en passant e promoção com escolha
 // ============================================================
 
 const PIECE_SYMBOLS = {
@@ -22,16 +22,17 @@ const INITIAL_BOARD = [
 
 // Estado do jogo
 let board;
-let turno;            // 'branco' | 'preto'
-let selecionada;      // [i, j] | null
-let movimentosLegais; // [[i,j], ...]
-let status;           // 'playing' | 'check' | 'checkmate' | 'stalemate'
-let ultimoMovimento;  // { de:[i,j], para:[i,j] } | null
+let turno;
+let selecionada;
+let movimentosLegais;
+let status;
+let ultimoMovimento;
 let capturadas_brancas;
 let capturadas_pretas;
 let historico;
 let direitosRoque;
-let enPassant;        // [i, j] da casa-alvo do en passant | null
+let enPassant;
+let pendingPromotion; // guarda dados do lance pendente até o jogador escolher a peça
 
 // ============================================================
 //  Lógica pura (sem DOM)
@@ -50,22 +51,17 @@ function corDa(peca) {
     return eBranca(peca) ? "branco" : "preto";
 }
 
-// ep = [i,j] da casa-alvo do en passant, ou null
 function movimentoPeao(b, fi, fj, ti, tj, peca, ep) {
     const di = ti - fi, dj = tj - fj;
     if (peca === "P") {
         if (di === -1 && dj === 0 && b[ti][tj] === "") return true;
         if (fi === 6 && di === -2 && dj === 0 && b[fi - 1][fj] === "" && b[ti][tj] === "") return true;
-        // Captura normal
         if (di === -1 && Math.abs(dj) === 1 && b[ti][tj] !== "") return true;
-        // En passant
         if (di === -1 && Math.abs(dj) === 1 && b[ti][tj] === "" && ep && ti === ep[0] && tj === ep[1]) return true;
     } else {
         if (di === 1 && dj === 0 && b[ti][tj] === "") return true;
         if (fi === 1 && di === 2 && dj === 0 && b[fi + 1][fj] === "" && b[ti][tj] === "") return true;
-        // Captura normal
         if (di === 1 && Math.abs(dj) === 1 && b[ti][tj] !== "") return true;
-        // En passant
         if (di === 1 && Math.abs(dj) === 1 && b[ti][tj] === "" && ep && ti === ep[0] && tj === ep[1]) return true;
     }
     return false;
@@ -144,7 +140,6 @@ function estaEmXeque(b, cor) {
     return podeSerAtacada(b, rei[0], rei[1], oponente);
 }
 
-// Retorna casas de destino do roque (coluna 6 = kingside, coluna 2 = queenside)
 function movimentosRoque(b, cor, direitos) {
     const movs = [];
     const linha = cor === "branco" ? 7 : 0;
@@ -154,7 +149,6 @@ function movimentosRoque(b, cor, direitos) {
     const oponente = cor === "branco" ? "preto" : "branco";
     if (podeSerAtacada(b, linha, 4, oponente)) return movs;
 
-    // Kingside (O-O)
     const torreH = cor === "branco" ? direitos.torreBH : direitos.torrePH;
     if (torreH && b[linha][5] === "" && b[linha][6] === "" &&
         !podeSerAtacada(b, linha, 5, oponente) &&
@@ -162,7 +156,6 @@ function movimentosRoque(b, cor, direitos) {
         movs.push([linha, 6]);
     }
 
-    // Queenside (O-O-O)
     const torreA = cor === "branco" ? direitos.torreBA : direitos.torrePA;
     if (torreA && b[linha][1] === "" && b[linha][2] === "" && b[linha][3] === "" &&
         !podeSerAtacada(b, linha, 3, oponente) &&
@@ -185,12 +178,11 @@ function getMovimentosLegais(b, fi, fj, peca, cor, direitos, ep = null) {
             next[ti][tj] = peca;
             next[fi][fj] = "";
 
-            // En passant: remover peão capturado do tabuleiro simulado
             const eEP = ep && (peca === "P" || peca === "p") &&
                 ti === ep[0] && tj === ep[1] && dest === "";
             if (eEP) {
-                const linhaPeaoCapturado = peca === "P" ? ti + 1 : ti - 1;
-                next[linhaPeaoCapturado][tj] = "";
+                const linhaCapturado = peca === "P" ? ti + 1 : ti - 1;
+                next[linhaCapturado][tj] = "";
             }
 
             if (!estaEmXeque(next, cor)) movs.push([ti, tj]);
@@ -223,7 +215,6 @@ function atualizarDireitosRoque(direitos, peca, fi, fj) {
     return next;
 }
 
-// Retorna a casa-alvo de en passant após um peão avançar 2 casas, ou null
 function calcularEnPassant(peca, fi, fj, ti) {
     if (peca === "P" && fi === 6 && ti === 4) return [5, fj];
     if (peca === "p" && fi === 1 && ti === 3) return [2, fj];
@@ -242,15 +233,80 @@ function letraColuna(j) { return String.fromCharCode(65 + j); }
 function numeroLinha(i) { return String(8 - i); }
 
 // ============================================================
+//  Promoção — modal
+// ============================================================
+
+function mostrarModalPromocao(cor) {
+    const modal = document.getElementById("promocaoModal");
+    const btns = modal.querySelectorAll(".promocao-btn");
+
+    // Peças e símbolos corretos para cada cor
+    const pecas = cor === "branco" ? ["Q", "R", "B", "N"] : ["q", "r", "b", "n"];
+    const simbolos = cor === "branco"
+        ? ["♕", "♖", "♗", "♘"]
+        : ["♛", "♜", "♝", "♞"];
+    const nomes = ["Dama", "Torre", "Bispo", "Cavalo"];
+    const classeBtn = cor === "branco" ? "promocao-btn promo-branca" : "promocao-btn promo-preta";
+
+    btns.forEach((btn, idx) => {
+        btn.dataset.peca = pecas[idx];
+        btn.className = classeBtn;
+        btn.querySelector(".promo-simbolo").textContent = simbolos[idx];
+        btn.querySelector(".promo-nome").textContent = nomes[idx];
+    });
+
+    modal.style.display = "flex";
+}
+
+function completarPromocao(pecaEscolhida) {
+    const { novoTabuleiro, si, sj, toI, toJ, novosDireitos, novoEnPassant, pecaDestino } = pendingPromotion;
+
+    // Aplicar peça escolhida
+    novoTabuleiro[toI][toJ] = pecaEscolhida;
+
+    // Registrar captura (se houver)
+    if (pecaDestino !== "") {
+        if (eBranca(pecaDestino)) capturadas_brancas.push(pecaDestino);
+        else capturadas_pretas.push(pecaDestino);
+    }
+
+    // Notação
+    const notacao = `${letraColuna(sj)}${numeroLinha(si)}→${letraColuna(toJ)}${numeroLinha(toI)}=${nomePeca(pecaEscolhida)}`;
+    historico.push(`${turno === "branco" ? "♔" : "♚"} ${notacao}`);
+
+    // Verificar xeque / xeque-mate / afogamento
+    const oponente = turno === "branco" ? "preto" : "branco";
+    const emXeque = estaEmXeque(novoTabuleiro, oponente);
+    const podeMover = temMovimentoLegal(novoTabuleiro, oponente, novosDireitos, novoEnPassant);
+
+    if (emXeque && !podeMover) status = "checkmate";
+    else if (!emXeque && !podeMover) status = "stalemate";
+    else if (emXeque) status = "check";
+    else status = "playing";
+
+    board = novoTabuleiro;
+    turno = oponente;
+    selecionada = null;
+    movimentosLegais = [];
+    ultimoMovimento = { de: [si, sj], para: [toI, toJ] };
+    direitosRoque = novosDireitos;
+    enPassant = novoEnPassant;
+    pendingPromotion = null;
+
+    document.getElementById("promocaoModal").style.display = "none";
+    renderizar();
+}
+
+// ============================================================
 //  Lógica de clique
 // ============================================================
 
 function clicarCasa(i, j) {
     if (status !== "playing" && status !== "check") return;
+    if (pendingPromotion) return; // aguardando escolha de promoção
 
     const peca = board[i][j];
 
-    // Nada selecionado — selecionar peça
     if (selecionada === null) {
         if (peca === "" || corDa(peca) !== turno) return;
         selecionada = [i, j];
@@ -261,7 +317,6 @@ function clicarCasa(i, j) {
 
     const [si, sj] = selecionada;
 
-    // Clicar na mesma casa — desselecionar
     if (si === i && sj === j) {
         selecionada = null;
         movimentosLegais = [];
@@ -272,7 +327,6 @@ function clicarCasa(i, j) {
     const pecaSelecionada = board[si][sj];
     const pecaDestino = board[i][j];
 
-    // Clicar em outra peça própria — trocar seleção
     if (pecaDestino !== "" && corDa(pecaDestino) === turno) {
         selecionada = [i, j];
         movimentosLegais = getMovimentosLegais(board, i, j, pecaDestino, turno, direitosRoque, enPassant);
@@ -280,7 +334,6 @@ function clicarCasa(i, j) {
         return;
     }
 
-    // Verificar se é movimento legal
     const eLegal = movimentosLegais.some(([li, lj]) => li === i && lj === j);
     if (!eLegal) {
         selecionada = null;
@@ -289,11 +342,10 @@ function clicarCasa(i, j) {
         return;
     }
 
-    // Detectar tipo de lance especial
+    // Tipo do lance
     const eRoque = (pecaSelecionada === "K" || pecaSelecionada === "k") && Math.abs(j - sj) === 2;
     const ladoRei = j > sj;
     const pecaTorre = turno === "branco" ? "R" : "r";
-
     const eEP = enPassant && (pecaSelecionada === "P" || pecaSelecionada === "p") &&
         i === enPassant[0] && j === enPassant[1] && pecaDestino === "";
 
@@ -306,49 +358,52 @@ function clicarCasa(i, j) {
         novoTabuleiro[i][ladoRei ? 7 : 0] = "";
 
     } else if (eEP) {
-        // En passant: mover peão capturante e remover peão capturado
-        const linhaPeaoCapturado = pecaSelecionada === "P" ? i + 1 : i - 1;
-        const pecaCapturada = novoTabuleiro[linhaPeaoCapturado][j];
+        const linhaCapturado = pecaSelecionada === "P" ? i + 1 : i - 1;
+        const pecaCapturada = novoTabuleiro[linhaCapturado][j];
         novoTabuleiro[i][j] = pecaSelecionada;
         novoTabuleiro[si][sj] = "";
-        novoTabuleiro[linhaPeaoCapturado][j] = "";
+        novoTabuleiro[linhaCapturado][j] = "";
         if (eBranca(pecaCapturada)) capturadas_brancas.push(pecaCapturada);
         else capturadas_pretas.push(pecaCapturada);
 
     } else {
         novoTabuleiro[i][j] = pecaSelecionada;
         novoTabuleiro[si][sj] = "";
-        // Promoção do peão
-        if (novoTabuleiro[i][j] === "P" && i === 0) novoTabuleiro[i][j] = "Q";
-        if (novoTabuleiro[i][j] === "p" && i === 7) novoTabuleiro[i][j] = "q";
+
+        // Promoção do peão — pausar e exibir modal de escolha
+        const ePromocao = (novoTabuleiro[i][j] === "P" && i === 0) ||
+            (novoTabuleiro[i][j] === "p" && i === 7);
+        if (ePromocao) {
+            const novosDireitos = atualizarDireitosRoque(direitosRoque, pecaSelecionada, si, sj);
+            const novoEnPassant = null; // peão promovido nunca gera en passant
+            pendingPromotion = { novoTabuleiro, si, sj, toI: i, toJ: j, novosDireitos, novoEnPassant, pecaDestino };
+            selecionada = null;
+            movimentosLegais = [];
+            mostrarModalPromocao(turno);
+            return;
+        }
     }
 
-    // Registrar captura normal
+    // Captura normal (não en passant, não roque)
     if (!eRoque && !eEP && pecaDestino !== "") {
         if (eBranca(pecaDestino)) capturadas_brancas.push(pecaDestino);
         else capturadas_pretas.push(pecaDestino);
     }
 
-    // Atualizar direitos do roque
     const novosDireitos = atualizarDireitosRoque(direitosRoque, pecaSelecionada, si, sj);
-
-    // Calcular nova casa-alvo de en passant
     const novoEnPassant = calcularEnPassant(pecaSelecionada, si, sj, i);
 
     // Notação
     let notacao;
     if (eRoque) {
         notacao = ladoRei ? "O-O" : "O-O-O";
+    } else if (eEP) {
+        notacao = `${letraColuna(sj)}x${letraColuna(j)}${numeroLinha(i)} e.p.`;
     } else {
         notacao = `${nomePeca(pecaSelecionada)} ${letraColuna(sj)}${numeroLinha(si)}→${letraColuna(j)}${numeroLinha(i)}`;
-
-        if (eEP) {
-            notacao += " e.p.";
-        }
     }
-    historico.push(`${turno === "branco" ? "Brancas: " : "Pretas: "} ${notacao}`);
+    historico.push(`${turno === "branco" ? "♔" : "♚"} ${notacao}`);
 
-    // Verificar xeque / xeque-mate / afogamento para o oponente
     const oponente = turno === "branco" ? "preto" : "branco";
     const emXeque = estaEmXeque(novoTabuleiro, oponente);
     const podeMover = temMovimentoLegal(novoTabuleiro, oponente, novosDireitos, novoEnPassant);
@@ -375,7 +430,7 @@ function clicarCasa(i, j) {
 
 function renderizar() {
     renderTabuleiro();
-    renderstatus();
+    renderStatus();
     renderCapturadas();
     renderHistorico();
 }
@@ -383,6 +438,12 @@ function renderizar() {
 function renderTabuleiro() {
     const container = document.getElementById("tabuleiro");
     container.innerHTML = "";
+
+    // Posição do rei em xeque / xeque-mate (é o rei do jogador atual = turno)
+    let posReiDestaque = null;
+    if (status === "check" || status === "checkmate") {
+        posReiDestaque = encontrarRei(board, turno);
+    }
 
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
@@ -399,21 +460,21 @@ function renderTabuleiro() {
             const eRoqueMov = eLegal && selecionada &&
                 (board[selecionada[0]][selecionada[1]] === "K" || board[selecionada[0]][selecionada[1]] === "k") &&
                 Math.abs(j - selecionada[1]) === 2;
-
-            // Casa-alvo de en passant (destino vazio mas é captura)
             const eEPMov = eLegal && selecionada && enPassant &&
                 (board[selecionada[0]][selecionada[1]] === "P" || board[selecionada[0]][selecionada[1]] === "p") &&
                 i === enPassant[0] && j === enPassant[1];
+            const eReiDestaque = posReiDestaque && posReiDestaque[0] === i && posReiDestaque[1] === j;
 
             if (estaSelecionada) {
                 casa.classList.add("selecionada");
+            } else if (eReiDestaque) {
+                casa.classList.add(status === "checkmate" ? "rei-xequemate" : "rei-xeque");
             } else if (eUltimo) {
                 casa.classList.add(eClara ? "ultimo-claro" : "ultimo-escuro");
             } else {
                 casa.classList.add(eClara ? "casa_clara" : "casa_escura");
             }
 
-            // Indicadores de movimento
             if (eLegal) {
                 const ind = document.createElement("div");
                 if (eRoqueMov) {
@@ -426,7 +487,6 @@ function renderTabuleiro() {
                 casa.appendChild(ind);
             }
 
-            // Peça
             const peca = board[i][j];
             if (peca !== "") {
                 const span = document.createElement("span");
@@ -443,7 +503,7 @@ function renderTabuleiro() {
     }
 }
 
-function renderstatus() {
+function renderStatus() {
     const el = document.getElementById("status");
     el.className = "status";
     let msg = "";
@@ -516,6 +576,8 @@ function iniciarJogo() {
         torrePA: true, torrePH: true,
     };
     enPassant = null;
+    pendingPromotion = null;
+    document.getElementById("promocaoModal").style.display = "none";
     renderizar();
 }
 
@@ -539,5 +601,13 @@ function construirLabels() {
 document.addEventListener("DOMContentLoaded", () => {
     construirLabels();
     document.getElementById("btnRestart").addEventListener("click", iniciarJogo);
+
+    // Botões do modal de promoção
+    document.querySelectorAll(".promocao-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            completarPromocao(btn.dataset.peca);
+        });
+    });
+
     iniciarJogo();
 });
