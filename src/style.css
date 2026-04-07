@@ -195,6 +195,32 @@ h1 {
     50% { opacity: 0.35; }
 }
 
+/* ---- Botão flip ---- */
+
+.btn-flip {
+    border: none;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    width: 100%;
+    font-family: inherit;
+    background: #2c4745;
+    color: #d1d5db;
+}
+
+.btn-flip:hover {
+    background: #426563;
+    color: white;
+}
+
+.btn-flip.ativo {
+    background: #426563;
+    color: #e8c468;
+}
+
 /* ---- Peças capturadas ---- */
 
 .captured-bar {

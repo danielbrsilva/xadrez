@@ -33,6 +33,7 @@ let historico;
 let direitosRoque;
 let enPassant;
 let pendingPromotion; // guarda dados do lance pendente até o jogador escolher a peça
+let invertido;        // perspectiva: false = brancas (padrão), true = pretas
 
 // ============================================================
 //  Lógica pura (sem DOM)
@@ -429,6 +430,7 @@ function clicarCasa(i, j) {
 // ============================================================
 
 function renderizar() {
+    renderLabels();
     renderTabuleiro();
     renderStatus();
     renderCapturadas();
@@ -445,25 +447,30 @@ function renderTabuleiro() {
         posReiDestaque = encontrarRei(board, turno);
     }
 
-    for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 8; j++) {
+    // vi/vj = índice visual (0..7 de cima p/ baixo, esq p/ dir)
+    // bi/bj = índice real no array board
+    for (let vi = 0; vi < 8; vi++) {
+        for (let vj = 0; vj < 8; vj++) {
+            const bi = invertido ? 7 - vi : vi;
+            const bj = invertido ? 7 - vj : vj;
+
             const casa = document.createElement("div");
             casa.classList.add("casa");
 
-            const eClara = (i + j) % 2 === 0;
-            const estaSelecionada = selecionada && selecionada[0] === i && selecionada[1] === j;
-            const eLegal = movimentosLegais.some(([li, lj]) => li === i && lj === j);
+            const eClara = (bi + bj) % 2 === 0;
+            const estaSelecionada = selecionada && selecionada[0] === bi && selecionada[1] === bj;
+            const eLegal = movimentosLegais.some(([li, lj]) => li === bi && lj === bj);
             const eUltimo = ultimoMovimento && (
-                (ultimoMovimento.de[0] === i && ultimoMovimento.de[1] === j) ||
-                (ultimoMovimento.para[0] === i && ultimoMovimento.para[1] === j)
+                (ultimoMovimento.de[0] === bi && ultimoMovimento.de[1] === bj) ||
+                (ultimoMovimento.para[0] === bi && ultimoMovimento.para[1] === bj)
             );
             const eRoqueMov = eLegal && selecionada &&
                 (board[selecionada[0]][selecionada[1]] === "K" || board[selecionada[0]][selecionada[1]] === "k") &&
-                Math.abs(j - selecionada[1]) === 2;
+                Math.abs(bj - selecionada[1]) === 2;
             const eEPMov = eLegal && selecionada && enPassant &&
                 (board[selecionada[0]][selecionada[1]] === "P" || board[selecionada[0]][selecionada[1]] === "p") &&
-                i === enPassant[0] && j === enPassant[1];
-            const eReiDestaque = posReiDestaque && posReiDestaque[0] === i && posReiDestaque[1] === j;
+                bi === enPassant[0] && bj === enPassant[1];
+            const eReiDestaque = posReiDestaque && posReiDestaque[0] === bi && posReiDestaque[1] === bj;
 
             if (estaSelecionada) {
                 casa.classList.add("selecionada");
@@ -479,7 +486,7 @@ function renderTabuleiro() {
                 const ind = document.createElement("div");
                 if (eRoqueMov) {
                     ind.classList.add("roque-indicator");
-                } else if (board[i][j] !== "" || eEPMov) {
+                } else if (board[bi][bj] !== "" || eEPMov) {
                     ind.classList.add("captura-indicator");
                 } else {
                     ind.classList.add("move-indicator");
@@ -487,7 +494,7 @@ function renderTabuleiro() {
                 casa.appendChild(ind);
             }
 
-            const peca = board[i][j];
+            const peca = board[bi][bj];
             if (peca !== "") {
                 const span = document.createElement("span");
                 span.classList.add("peca");
@@ -497,7 +504,8 @@ function renderTabuleiro() {
                 casa.appendChild(span);
             }
 
-            casa.addEventListener("click", () => clicarCasa(i, j));
+            // Clique sempre passa coordenadas reais do board
+            casa.addEventListener("click", () => clicarCasa(bi, bj));
             container.appendChild(casa);
         }
     }
@@ -530,14 +538,21 @@ function renderStatus() {
 }
 
 function renderCapturadas() {
-    const porPretas = document.getElementById("capturedBlack");
-    const porBrancas = document.getElementById("capturedWhite");
+    // capturedBlack = barra fisicamente acima do tabuleiro
+    // capturedWhite = barra fisicamente abaixo do tabuleiro
+    const topBar    = document.getElementById("capturedBlack");
+    const bottomBar = document.getElementById("capturedWhite");
 
-    porPretas.innerHTML = capturadas_brancas.map(p =>
+    // Normal (brancas embaixo): peças brancas capturadas ficam em cima, pretas embaixo
+    // Invertido (pretas embaixo): peças pretas capturadas ficam em cima, brancas embaixo
+    const topCapturadas    = invertido ? capturadas_pretas  : capturadas_brancas;
+    const bottomCapturadas = invertido ? capturadas_brancas : capturadas_pretas;
+
+    topBar.innerHTML = topCapturadas.map(p =>
         `<span class="peca-capturada ${eBranca(p) ? "peca_branca" : "peca_preta"}">${PIECE_SYMBOLS[p]}</span>`
     ).join("");
 
-    porBrancas.innerHTML = capturadas_pretas.map(p =>
+    bottomBar.innerHTML = bottomCapturadas.map(p =>
         `<span class="peca-capturada ${eBranca(p) ? "peca_branca" : "peca_preta"}">${PIECE_SYMBOLS[p]}</span>`
     ).join("");
 }
@@ -577,30 +592,47 @@ function iniciarJogo() {
     };
     enPassant = null;
     pendingPromotion = null;
+    invertido = false;
     document.getElementById("promocaoModal").style.display = "none";
+    const btnFlip = document.getElementById("btnFlip");
+    btnFlip.classList.remove("ativo");
+    btnFlip.textContent = "Inverter tabuleiro";
     renderizar();
 }
 
-function construirLabels() {
+function renderLabels() {
     const ranksEl = document.getElementById("ranks");
-    for (let i = 0; i < 8; i++) {
+    ranksEl.innerHTML = "";
+    for (let vi = 0; vi < 8; vi++) {
+        const bi = invertido ? 7 - vi : vi;
         const div = document.createElement("div");
         div.className = "rank-label";
-        div.textContent = numeroLinha(i);
+        div.textContent = numeroLinha(bi);
         ranksEl.appendChild(div);
     }
     const filesEl = document.getElementById("files");
-    for (let j = 0; j < 8; j++) {
+    filesEl.innerHTML = "";
+    for (let vj = 0; vj < 8; vj++) {
+        const bj = invertido ? 7 - vj : vj;
         const div = document.createElement("div");
         div.className = "file-label";
-        div.textContent = letraColuna(j);
+        div.textContent = letraColuna(bj);
         filesEl.appendChild(div);
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    construirLabels();
     document.getElementById("btnRestart").addEventListener("click", iniciarJogo);
+
+    document.getElementById("btnFlip").addEventListener("click", () => {
+        invertido = !invertido;
+        const btn = document.getElementById("btnFlip");
+        btn.classList.toggle("ativo", invertido);
+        btn.textContent = invertido ? "Desinverter tabuleiro" : "Inverter tabuleiro";
+        selecionada = null;
+        movimentosLegais = [];
+        renderizar();
+    });
 
     // Botões do modal de promoção
     document.querySelectorAll(".promocao-btn").forEach(btn => {

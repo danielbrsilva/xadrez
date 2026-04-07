@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="src/style.css" />
+    <link rel="stylesheet" href="src/style.css">
 </head>
 
 <body>
@@ -16,8 +16,6 @@
         <h1>Xadrez</h1>
 
         <div class="game-container">
-
-            <!-- Tabuleiro -->
             <div class="board-section">
                 <div id="capturedBlack" class="captured-bar"></div>
 
@@ -32,9 +30,9 @@
                 <div id="capturedWhite" class="captured-bar"></div>
             </div>
 
-            <!-- Painel lateral -->
             <div class="side-panel">
                 <div id="status" class="status">Turno das brancas</div>
+                <button id="btnFlip" class="btn-flip">Inverter tabuleiro</button>
                 <button id="btnRestart" class="btn-reiniciar">Reiniciar</button>
 
                 <div class="panel-box historico-box">
@@ -52,11 +50,9 @@
                     </ul>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- Modal de promoção do peão -->
     <div id="promocaoModal" class="promocao-overlay">
         <div class="promocao-caixa">
             <p class="promocao-titulo">Promover peão</p>
