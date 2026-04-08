@@ -440,6 +440,42 @@ h1 {
     letter-spacing: 0.03em;
 }
 
+/* ---- Controles da IA ---- */
+
+.ia-botoes {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-ia,
+.btn-nivel {
+    flex: 1;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+    background: #385957;
+    color: #9ca3af;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.btn-ia:hover,
+.btn-nivel:hover {
+    background: #426563;
+    color: white;
+}
+
+.btn-ia.ativo,
+.btn-nivel.ativo {
+    background: #426563;
+    color: #e8c468;
+}
+
 /* ---- RESPONSIVO (CELULAR) ---- */
 
 @media (max-width: 768px) {

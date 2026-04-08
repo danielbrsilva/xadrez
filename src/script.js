@@ -34,6 +34,8 @@ let direitosRoque;
 let enPassant;
 let pendingPromotion; // guarda dados do lance pendente até o jogador escolher a peça
 let invertido;        // perspectiva: false = brancas (padrão), true = pretas
+let iaJogando = null; // null | "branco" | "preto"
+let nivelIA = "facil"; // "facil" | "medio" | "dificil"
 
 // ============================================================
 //  Lógica pura (sem DOM)
@@ -150,15 +152,21 @@ function movimentosRoque(b, cor, direitos) {
     const oponente = cor === "branco" ? "preto" : "branco";
     if (podeSerAtacada(b, linha, 4, oponente)) return movs;
 
+    const pecaTorre = cor === "branco" ? "R" : "r";
+
+    // Roque do lado do rei (coluna H) — a torre precisa estar fisicamente em [linha][7]
     const torreH = cor === "branco" ? direitos.torreBH : direitos.torrePH;
-    if (torreH && b[linha][5] === "" && b[linha][6] === "" &&
+    if (torreH && b[linha][7] === pecaTorre &&
+        b[linha][5] === "" && b[linha][6] === "" &&
         !podeSerAtacada(b, linha, 5, oponente) &&
         !podeSerAtacada(b, linha, 6, oponente)) {
         movs.push([linha, 6]);
     }
 
+    // Roque do lado da rainha (coluna A) — a torre precisa estar fisicamente em [linha][0]
     const torreA = cor === "branco" ? direitos.torreBA : direitos.torrePA;
-    if (torreA && b[linha][1] === "" && b[linha][2] === "" && b[linha][3] === "" &&
+    if (torreA && b[linha][0] === pecaTorre &&
+        b[linha][1] === "" && b[linha][2] === "" && b[linha][3] === "" &&
         !podeSerAtacada(b, linha, 3, oponente) &&
         !podeSerAtacada(b, linha, 2, oponente)) {
         movs.push([linha, 2]);
@@ -237,7 +245,21 @@ function numeroLinha(i) { return String(8 - i); }
 //  Promoção — modal
 // ============================================================
 
+// Executa o lance da IA: seleciona a peça e chama clicarCasa no destino
+function executarMovimentoIA(fi, fj, ti, tj) {
+    selecionada = [fi, fj];
+    movimentosLegais = getMovimentosLegais(board, fi, fj, board[fi][fj], turno, direitosRoque, enPassant);
+    clicarCasa(ti, tj);
+}
+
 function mostrarModalPromocao(cor) {
+    // Quando a IA está jogando essa cor, promove automaticamente para Rainha
+    if (iaJogando === cor) {
+        const rainha = cor === "branco" ? "Q" : "q";
+        setTimeout(() => completarPromocao(rainha), 0);
+        return;
+    }
+
     const modal = document.getElementById("promocaoModal");
     const btns = modal.querySelectorAll(".promocao-btn");
 
@@ -435,6 +457,8 @@ function renderizar() {
     renderStatus();
     renderCapturadas();
     renderHistorico();
+    // Dispara IA se for a vez dela (função definida em ia.js)
+    if (typeof agendarMovimentoIA === "function") agendarMovimentoIA();
 }
 
 function renderTabuleiro() {
@@ -638,6 +662,27 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".promocao-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             completarPromocao(btn.dataset.peca);
+        });
+    });
+
+    // Botões de cor da IA (Desligada / Peças pretas / Peças brancas)
+    document.querySelectorAll(".btn-ia").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".btn-ia").forEach(b => b.classList.remove("ativo"));
+            btn.classList.add("ativo");
+            const cor = btn.dataset.cor;
+            iaJogando = cor === "" ? null : cor;
+            // Dispara imediatamente se for a vez da IA
+            if (typeof agendarMovimentoIA === "function") agendarMovimentoIA();
+        });
+    });
+
+    // Botões de nível (Fácil / Médio / Difícil)
+    document.querySelectorAll(".btn-nivel").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".btn-nivel").forEach(b => b.classList.remove("ativo"));
+            btn.classList.add("ativo");
+            nivelIA = btn.dataset.nivel;
         });
     });
 
