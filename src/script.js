@@ -255,7 +255,7 @@ function salvarEstado() {
             invertido, iaJogando, nivelIA, primeiroLanceFoito
         };
         localStorage.setItem("xadrezEstado", JSON.stringify(estado));
-    } catch (e) {}
+    } catch (e) { }
 }
 
 function restaurarEstado() {
@@ -264,22 +264,22 @@ function restaurarEstado() {
         if (!raw) return false;
         const s = JSON.parse(raw);
 
-        board               = s.board;
-        turno               = s.turno;
-        selecionada         = null;
-        movimentosLegais    = [];
-        status              = s.status;
-        ultimoMovimento     = s.ultimoMovimento;
-        capturadas_brancas  = s.capturadas_brancas;
-        capturadas_pretas   = s.capturadas_pretas;
-        historico           = s.historico;
-        direitosRoque       = s.direitosRoque;
-        enPassant           = s.enPassant;
-        invertido           = s.invertido;
-        iaJogando           = s.iaJogando;
-        nivelIA             = s.nivelIA;
-        primeiroLanceFoito  = s.primeiroLanceFoito || false;
-        pendingPromotion    = null;
+        board = s.board;
+        turno = s.turno;
+        selecionada = null;
+        movimentosLegais = [];
+        status = s.status;
+        ultimoMovimento = s.ultimoMovimento;
+        capturadas_brancas = s.capturadas_brancas;
+        capturadas_pretas = s.capturadas_pretas;
+        historico = s.historico;
+        direitosRoque = s.direitosRoque;
+        enPassant = s.enPassant;
+        invertido = s.invertido;
+        iaJogando = s.iaJogando;
+        nivelIA = s.nivelIA;
+        primeiroLanceFoito = s.primeiroLanceFoito || false;
+        pendingPromotion = null;
 
         const btnFlip = document.getElementById("btnFlip");
         btnFlip.classList.toggle("ativo", invertido);
@@ -372,14 +372,14 @@ function completarPromocao(pecaEscolhida) {
     // Só trava os botões quando foi o HUMANO que jogou (não a IA)
     if (iaJogando !== turno) primeiroLanceFoito = true;
 
-    board               = novoTabuleiro;
-    turno               = oponente;
-    selecionada         = null;
-    movimentosLegais    = [];
-    ultimoMovimento     = { de: [si, sj], para: [toI, toJ] };
-    direitosRoque       = novosDireitos;
-    enPassant           = novoEnPassant;
-    pendingPromotion    = null;
+    board = novoTabuleiro;
+    turno = oponente;
+    selecionada = null;
+    movimentosLegais = [];
+    ultimoMovimento = { de: [si, sj], para: [toI, toJ] };
+    direitosRoque = novosDireitos;
+    enPassant = novoEnPassant;
+    pendingPromotion = null;
 
     document.getElementById("promocaoModal").style.display = "none";
     renderizar();
@@ -501,13 +501,13 @@ function clicarCasa(i, j) {
     // Só trava os botões quando foi o HUMANO que jogou (não a IA)
     if (iaJogando !== turno) primeiroLanceFoito = true;
 
-    board               = novoTabuleiro;
-    turno               = oponente;
-    selecionada         = null;
-    movimentosLegais    = [];
-    ultimoMovimento     = { de: [si, sj], para: [i, j] };
-    direitosRoque       = novosDireitos;
-    enPassant           = novoEnPassant;
+    board = novoTabuleiro;
+    turno = oponente;
+    selecionada = null;
+    movimentosLegais = [];
+    ultimoMovimento = { de: [si, sj], para: [i, j] };
+    direitosRoque = novosDireitos;
+    enPassant = novoEnPassant;
 
     renderizar();
 }
@@ -624,10 +624,10 @@ function renderStatus() {
 }
 
 function renderCapturadas() {
-    const topBar    = document.getElementById("capturedBlack");
+    const topBar = document.getElementById("capturedBlack");
     const bottomBar = document.getElementById("capturedWhite");
 
-    const topCapturadas    = invertido ? capturadas_pretas  : capturadas_brancas;
+    const topCapturadas = invertido ? capturadas_pretas : capturadas_brancas;
     const bottomCapturadas = invertido ? capturadas_brancas : capturadas_pretas;
 
     topBar.innerHTML = topCapturadas.map(p =>
@@ -667,6 +667,8 @@ function iniciarJogo() {
     capturadas_brancas = [];
     capturadas_pretas = [];
     historico = [];
+    iaJogando = null;
+    nivelIA = "facil";
     direitosRoque = {
         reiB: true, reiP: true,
         torreBA: true, torreBH: true,
@@ -678,7 +680,7 @@ function iniciarJogo() {
     primeiroLanceFoito = false;
     _iaGen++;
 
-    try { localStorage.removeItem("xadrezEstado"); } catch (e) {}
+    try { localStorage.removeItem("xadrezEstado"); } catch (e) { }
 
     document.getElementById("promocaoModal").style.display = "none";
 
@@ -699,6 +701,16 @@ function iniciarJogo() {
     document.querySelectorAll(".btn-nivel").forEach(btn => btn.classList.remove("ativo"));
     const _btnNivel = document.querySelector(`.btn-nivel[data-nivel="${nivelIA}"]`);
     if (_btnNivel) _btnNivel.classList.add("ativo");
+
+    // Reset IA
+    document.querySelectorAll(".btn-ia").forEach(btn => btn.classList.remove("ativo"));
+    const btnIAOff = document.querySelector('.btn-ia[data-cor=""]');
+    if (btnIAOff) btnIAOff.classList.add("ativo");
+
+    // Reset nível
+    document.querySelectorAll(".btn-nivel").forEach(btn => btn.classList.remove("ativo"));
+    const btnNivelFacil = document.querySelector('.btn-nivel[data-nivel="facil"]');
+    if (btnNivelFacil) btnNivelFacil.classList.add("ativo");
 
     renderizar();
 }
