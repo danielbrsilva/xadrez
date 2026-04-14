@@ -240,10 +240,15 @@ h1 {
 /* ---- Painel lateral ---- */
 
 .side-panel {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    width: 260px;
+    width: 520px;
+}
+
+.manual-box {
+    grid-column: 2;
+    grid-row: 1 / span 10;
 }
 
 .status {
@@ -361,6 +366,68 @@ h1 {
 
 .como-jogar li::before {
     content: "• ";
+}
+
+.manual-completo {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #d1d5db;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.manual-completo h4 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #e8c468;
+    margin-top: 0.5rem;
+    letter-spacing: 0.03em;
+}
+
+.manual-completo p {
+    color: #cbd5e1;
+}
+
+.manual-completo ul {
+    list-style: none;
+    padding-left: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.manual-completo li {
+    position: relative;
+    padding-left: 0.75rem;
+}
+
+.manual-completo li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #e8c468;
+    font-weight: bold;
+}
+
+.manual-completo strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.manual-box {
+    max-height: 500px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.manual-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.manual-box::-webkit-scrollbar-thumb {
+    background: #426563;
+    border-radius: 10px;
 }
 
 /* ---- Modal de promoção ---- */
@@ -518,5 +585,17 @@ h1 {
 
     .promo-simbolo {
         font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .side-panel {
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .manual-box {
+        grid-column: auto;
+        grid-row: auto;
     }
 }
