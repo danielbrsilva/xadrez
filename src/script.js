@@ -32,10 +32,11 @@ let capturadas_pretas;
 let historico;
 let direitosRoque;
 let enPassant;
-let pendingPromotion; // guarda dados do lance pendente até o jogador escolher a peça
-let invertido;        // perspectiva: false = brancas (padrão), true = pretas
-let iaJogando = null; // null | "branco" | "preto"
-let nivelIA = "facil"; // "facil" | "medio" | "dificil"
+let pendingPromotion;
+let invertido;
+let iaJogando = null;
+let nivelIA = "facil";
+let primeiroLanceFoito = false; // trava os botões de IA/Nível após o 1° lance
 
 // ============================================================
 //  Lógica pura (sem DOM)
@@ -154,7 +155,6 @@ function movimentosRoque(b, cor, direitos) {
 
     const pecaTorre = cor === "branco" ? "R" : "r";
 
-    // Roque do lado do rei (coluna H) — a torre precisa estar fisicamente em [linha][7]
     const torreH = cor === "branco" ? direitos.torreBH : direitos.torrePH;
     if (torreH && b[linha][7] === pecaTorre &&
         b[linha][5] === "" && b[linha][6] === "" &&
@@ -163,7 +163,6 @@ function movimentosRoque(b, cor, direitos) {
         movs.push([linha, 6]);
     }
 
-    // Roque do lado da rainha (coluna A) — a torre precisa estar fisicamente em [linha][0]
     const torreA = cor === "branco" ? direitos.torreBA : direitos.torrePA;
     if (torreA && b[linha][0] === pecaTorre &&
         b[linha][1] === "" && b[linha][2] === "" && b[linha][3] === "" &&
@@ -242,10 +241,78 @@ function letraColuna(j) { return String.fromCharCode(65 + j); }
 function numeroLinha(i) { return String(8 - i); }
 
 // ============================================================
+//  Persistência — localStorage
+// ============================================================
+
+function salvarEstado() {
+    if (pendingPromotion) return;
+    try {
+        const estado = {
+            board, turno, status, ultimoMovimento,
+            capturadas_brancas, capturadas_pretas,
+            historico, direitosRoque, enPassant,
+            invertido, iaJogando, nivelIA, primeiroLanceFoito
+        };
+        localStorage.setItem("xadrezEstado", JSON.stringify(estado));
+    } catch (e) {}
+}
+
+function restaurarEstado() {
+    try {
+        const raw = localStorage.getItem("xadrezEstado");
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+
+        board               = s.board;
+        turno               = s.turno;
+        selecionada         = null;
+        movimentosLegais    = [];
+        status              = s.status;
+        ultimoMovimento     = s.ultimoMovimento;
+        capturadas_brancas  = s.capturadas_brancas;
+        capturadas_pretas   = s.capturadas_pretas;
+        historico           = s.historico;
+        direitosRoque       = s.direitosRoque;
+        enPassant           = s.enPassant;
+        invertido           = s.invertido;
+        iaJogando           = s.iaJogando;
+        nivelIA             = s.nivelIA;
+        primeiroLanceFoito  = s.primeiroLanceFoito || false;
+        pendingPromotion    = null;
+
+        const btnFlip = document.getElementById("btnFlip");
+        btnFlip.classList.toggle("ativo", invertido);
+        btnFlip.textContent = invertido ? "Desinverter tabuleiro" : "Inverter tabuleiro";
+
+        document.querySelectorAll(".btn-ia").forEach(btn => {
+            btn.classList.toggle("ativo", btn.dataset.cor === (iaJogando || ""));
+        });
+        document.querySelectorAll(".btn-nivel").forEach(btn => {
+            btn.classList.toggle("ativo", btn.dataset.nivel === nivelIA);
+        });
+
+        document.getElementById("promocaoModal").style.display = "none";
+        renderizar();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================
+//  Bloqueio dos botões de IA/Nível após o 1° lance
+// ============================================================
+
+function atualizarBloqueioIA() {
+    document.querySelectorAll(".btn-ia, .btn-nivel").forEach(btn => {
+        btn.disabled = primeiroLanceFoito;
+    });
+}
+
+// ============================================================
 //  Promoção — modal
 // ============================================================
 
-// Executa o lance da IA: seleciona a peça e chama clicarCasa no destino
 function executarMovimentoIA(fi, fj, ti, tj) {
     selecionada = [fi, fj];
     movimentosLegais = getMovimentosLegais(board, fi, fj, board[fi][fj], turno, direitosRoque, enPassant);
@@ -253,7 +320,6 @@ function executarMovimentoIA(fi, fj, ti, tj) {
 }
 
 function mostrarModalPromocao(cor) {
-    // Quando a IA está jogando essa cor, promove automaticamente para Rainha
     if (iaJogando === cor) {
         const rainha = cor === "branco" ? "Q" : "q";
         setTimeout(() => completarPromocao(rainha), 0);
@@ -263,7 +329,6 @@ function mostrarModalPromocao(cor) {
     const modal = document.getElementById("promocaoModal");
     const btns = modal.querySelectorAll(".promocao-btn");
 
-    // Peças e símbolos corretos para cada cor
     const pecas = cor === "branco" ? ["Q", "R", "B", "N"] : ["q", "r", "b", "n"];
     const simbolos = cor === "branco"
         ? ["♕", "♖", "♗", "♘"]
@@ -284,20 +349,16 @@ function mostrarModalPromocao(cor) {
 function completarPromocao(pecaEscolhida) {
     const { novoTabuleiro, si, sj, toI, toJ, novosDireitos, novoEnPassant, pecaDestino } = pendingPromotion;
 
-    // Aplicar peça escolhida
     novoTabuleiro[toI][toJ] = pecaEscolhida;
 
-    // Registrar captura (se houver)
     if (pecaDestino !== "") {
         if (eBranca(pecaDestino)) capturadas_brancas.push(pecaDestino);
         else capturadas_pretas.push(pecaDestino);
     }
 
-    // Notação
     const notacao = `${letraColuna(sj)}${numeroLinha(si)}→${letraColuna(toJ)}${numeroLinha(toI)}=${nomePeca(pecaEscolhida)}`;
     historico.push(`${turno === "branco" ? "♔" : "♚"} ${notacao}`);
 
-    // Verificar xeque / xeque-mate / afogamento
     const oponente = turno === "branco" ? "preto" : "branco";
     const emXeque = estaEmXeque(novoTabuleiro, oponente);
     const podeMover = temMovimentoLegal(novoTabuleiro, oponente, novosDireitos, novoEnPassant);
@@ -307,14 +368,15 @@ function completarPromocao(pecaEscolhida) {
     else if (emXeque) status = "check";
     else status = "playing";
 
-    board = novoTabuleiro;
-    turno = oponente;
-    selecionada = null;
-    movimentosLegais = [];
-    ultimoMovimento = { de: [si, sj], para: [toI, toJ] };
-    direitosRoque = novosDireitos;
-    enPassant = novoEnPassant;
-    pendingPromotion = null;
+    board               = novoTabuleiro;
+    turno               = oponente;
+    selecionada         = null;
+    movimentosLegais    = [];
+    ultimoMovimento     = { de: [si, sj], para: [toI, toJ] };
+    direitosRoque       = novosDireitos;
+    enPassant           = novoEnPassant;
+    pendingPromotion    = null;
+    primeiroLanceFoito  = true;
 
     document.getElementById("promocaoModal").style.display = "none";
     renderizar();
@@ -326,7 +388,7 @@ function completarPromocao(pecaEscolhida) {
 
 function clicarCasa(i, j) {
     if (status !== "playing" && status !== "check") return;
-    if (pendingPromotion) return; // aguardando escolha de promoção
+    if (pendingPromotion) return;
 
     const peca = board[i][j];
 
@@ -365,7 +427,6 @@ function clicarCasa(i, j) {
         return;
     }
 
-    // Tipo do lance
     const eRoque = (pecaSelecionada === "K" || pecaSelecionada === "k") && Math.abs(j - sj) === 2;
     const ladoRei = j > sj;
     const pecaTorre = turno === "branco" ? "R" : "r";
@@ -393,21 +454,20 @@ function clicarCasa(i, j) {
         novoTabuleiro[i][j] = pecaSelecionada;
         novoTabuleiro[si][sj] = "";
 
-        // Promoção do peão — pausar e exibir modal de escolha
         const ePromocao = (novoTabuleiro[i][j] === "P" && i === 0) ||
             (novoTabuleiro[i][j] === "p" && i === 7);
         if (ePromocao) {
             const novosDireitos = atualizarDireitosRoque(direitosRoque, pecaSelecionada, si, sj);
-            const novoEnPassant = null; // peão promovido nunca gera en passant
+            const novoEnPassant = null;
             pendingPromotion = { novoTabuleiro, si, sj, toI: i, toJ: j, novosDireitos, novoEnPassant, pecaDestino };
             selecionada = null;
             movimentosLegais = [];
+            primeiroLanceFoito = true;
             mostrarModalPromocao(turno);
             return;
         }
     }
 
-    // Captura normal (não en passant, não roque)
     if (!eRoque && !eEP && pecaDestino !== "") {
         if (eBranca(pecaDestino)) capturadas_brancas.push(pecaDestino);
         else capturadas_pretas.push(pecaDestino);
@@ -416,7 +476,6 @@ function clicarCasa(i, j) {
     const novosDireitos = atualizarDireitosRoque(direitosRoque, pecaSelecionada, si, sj);
     const novoEnPassant = calcularEnPassant(pecaSelecionada, si, sj, i);
 
-    // Notação
     let notacao;
     if (eRoque) {
         notacao = ladoRei ? "O-O" : "O-O-O";
@@ -436,13 +495,14 @@ function clicarCasa(i, j) {
     else if (emXeque) status = "check";
     else status = "playing";
 
-    board = novoTabuleiro;
-    turno = oponente;
-    selecionada = null;
-    movimentosLegais = [];
-    ultimoMovimento = { de: [si, sj], para: [i, j] };
-    direitosRoque = novosDireitos;
-    enPassant = novoEnPassant;
+    board               = novoTabuleiro;
+    turno               = oponente;
+    selecionada         = null;
+    movimentosLegais    = [];
+    ultimoMovimento     = { de: [si, sj], para: [i, j] };
+    direitosRoque       = novosDireitos;
+    enPassant           = novoEnPassant;
+    primeiroLanceFoito  = true;
 
     renderizar();
 }
@@ -457,7 +517,8 @@ function renderizar() {
     renderStatus();
     renderCapturadas();
     renderHistorico();
-    // Dispara IA se for a vez dela (função definida em ia.js)
+    atualizarBloqueioIA();
+    salvarEstado();
     if (typeof agendarMovimentoIA === "function") agendarMovimentoIA();
 }
 
@@ -465,14 +526,11 @@ function renderTabuleiro() {
     const container = document.getElementById("tabuleiro");
     container.innerHTML = "";
 
-    // Posição do rei em xeque / xeque-mate (é o rei do jogador atual = turno)
     let posReiDestaque = null;
     if (status === "check" || status === "checkmate") {
         posReiDestaque = encontrarRei(board, turno);
     }
 
-    // vi/vj = índice visual (0..7 de cima p/ baixo, esq p/ dir)
-    // bi/bj = índice real no array board
     for (let vi = 0; vi < 8; vi++) {
         for (let vj = 0; vj < 8; vj++) {
             const bi = invertido ? 7 - vi : vi;
@@ -528,7 +586,6 @@ function renderTabuleiro() {
                 casa.appendChild(span);
             }
 
-            // Clique sempre passa coordenadas reais do board
             casa.addEventListener("click", () => clicarCasa(bi, bj));
             container.appendChild(casa);
         }
@@ -562,13 +619,9 @@ function renderStatus() {
 }
 
 function renderCapturadas() {
-    // capturedBlack = barra fisicamente acima do tabuleiro
-    // capturedWhite = barra fisicamente abaixo do tabuleiro
     const topBar    = document.getElementById("capturedBlack");
     const bottomBar = document.getElementById("capturedWhite");
 
-    // Normal (brancas embaixo): peças brancas capturadas ficam em cima, pretas embaixo
-    // Invertido (pretas embaixo): peças pretas capturadas ficam em cima, brancas embaixo
     const topCapturadas    = invertido ? capturadas_pretas  : capturadas_brancas;
     const bottomCapturadas = invertido ? capturadas_brancas : capturadas_pretas;
 
@@ -617,10 +670,20 @@ function iniciarJogo() {
     enPassant = null;
     pendingPromotion = null;
     invertido = false;
+    primeiroLanceFoito = false;
+
+    try { localStorage.removeItem("xadrezEstado"); } catch (e) {}
+
     document.getElementById("promocaoModal").style.display = "none";
+
     const btnFlip = document.getElementById("btnFlip");
     btnFlip.classList.remove("ativo");
     btnFlip.textContent = "Inverter tabuleiro";
+
+    document.querySelectorAll(".btn-ia, .btn-nivel").forEach(btn => {
+        btn.disabled = false;
+    });
+
     renderizar();
 }
 
@@ -658,33 +721,33 @@ document.addEventListener("DOMContentLoaded", () => {
         renderizar();
     });
 
-    // Botões do modal de promoção
     document.querySelectorAll(".promocao-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             completarPromocao(btn.dataset.peca);
         });
     });
 
-    // Botões de cor da IA (Desligada / Peças pretas / Peças brancas)
     document.querySelectorAll(".btn-ia").forEach(btn => {
         btn.addEventListener("click", () => {
+            if (btn.disabled) return;
             document.querySelectorAll(".btn-ia").forEach(b => b.classList.remove("ativo"));
             btn.classList.add("ativo");
             const cor = btn.dataset.cor;
             iaJogando = cor === "" ? null : cor;
-            // Dispara imediatamente se for a vez da IA
             if (typeof agendarMovimentoIA === "function") agendarMovimentoIA();
         });
     });
 
-    // Botões de nível (Fácil / Médio / Difícil)
     document.querySelectorAll(".btn-nivel").forEach(btn => {
         btn.addEventListener("click", () => {
+            if (btn.disabled) return;
             document.querySelectorAll(".btn-nivel").forEach(b => b.classList.remove("ativo"));
             btn.classList.add("ativo");
             nivelIA = btn.dataset.nivel;
         });
     });
 
-    iniciarJogo();
+    if (!restaurarEstado()) {
+        iniciarJogo();
+    }
 });

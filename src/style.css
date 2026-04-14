@@ -476,6 +476,13 @@ h1 {
     color: #e8c468;
 }
 
+.btn-ia:disabled,
+.btn-nivel:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* ---- RESPONSIVO (CELULAR) ---- */
 
 @media (max-width: 768px) {
