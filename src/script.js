@@ -369,7 +369,9 @@ function completarPromocao(pecaEscolhida) {
     else if (emXeque) status = "check";
     else status = "playing";
 
-    const quemMoveuProm = turno;
+    // Só trava os botões quando foi o HUMANO que jogou (não a IA)
+    if (iaJogando !== turno) primeiroLanceFoito = true;
+
     board               = novoTabuleiro;
     turno               = oponente;
     selecionada         = null;
@@ -378,7 +380,6 @@ function completarPromocao(pecaEscolhida) {
     direitosRoque       = novosDireitos;
     enPassant           = novoEnPassant;
     pendingPromotion    = null;
-    if (iaJogando !== quemMoveuProm) primeiroLanceFoito = true;
 
     document.getElementById("promocaoModal").style.display = "none";
     renderizar();
@@ -497,7 +498,9 @@ function clicarCasa(i, j) {
     else if (emXeque) status = "check";
     else status = "playing";
 
-    const quemMoveu     = turno;
+    // Só trava os botões quando foi o HUMANO que jogou (não a IA)
+    if (iaJogando !== turno) primeiroLanceFoito = true;
+
     board               = novoTabuleiro;
     turno               = oponente;
     selecionada         = null;
@@ -505,7 +508,6 @@ function clicarCasa(i, j) {
     ultimoMovimento     = { de: [si, sj], para: [i, j] };
     direitosRoque       = novosDireitos;
     enPassant           = novoEnPassant;
-    if (iaJogando !== quemMoveu) primeiroLanceFoito = true;
 
     renderizar();
 }
