@@ -36,7 +36,8 @@ let pendingPromotion;
 let invertido;
 let iaJogando = null;
 let nivelIA = "facil";
-let primeiroLanceFoito = false; // trava os botões de IA/Nível após o 1° lance
+let primeiroLanceFoito = false; // trava os botões de IA/Nível após o 1° lance humano
+let _iaGen = 0; // incrementa a cada reinício para invalidar timeouts antigos da IA
 
 // ============================================================
 //  Lógica pura (sem DOM)
@@ -368,6 +369,7 @@ function completarPromocao(pecaEscolhida) {
     else if (emXeque) status = "check";
     else status = "playing";
 
+    const quemMoveuProm = turno;
     board               = novoTabuleiro;
     turno               = oponente;
     selecionada         = null;
@@ -376,7 +378,7 @@ function completarPromocao(pecaEscolhida) {
     direitosRoque       = novosDireitos;
     enPassant           = novoEnPassant;
     pendingPromotion    = null;
-    primeiroLanceFoito  = true;
+    if (iaJogando !== quemMoveuProm) primeiroLanceFoito = true;
 
     document.getElementById("promocaoModal").style.display = "none";
     renderizar();
@@ -462,7 +464,7 @@ function clicarCasa(i, j) {
             pendingPromotion = { novoTabuleiro, si, sj, toI: i, toJ: j, novosDireitos, novoEnPassant, pecaDestino };
             selecionada = null;
             movimentosLegais = [];
-            primeiroLanceFoito = true;
+            if (iaJogando !== turno) primeiroLanceFoito = true;
             mostrarModalPromocao(turno);
             return;
         }
@@ -495,6 +497,7 @@ function clicarCasa(i, j) {
     else if (emXeque) status = "check";
     else status = "playing";
 
+    const quemMoveu     = turno;
     board               = novoTabuleiro;
     turno               = oponente;
     selecionada         = null;
@@ -502,7 +505,7 @@ function clicarCasa(i, j) {
     ultimoMovimento     = { de: [si, sj], para: [i, j] };
     direitosRoque       = novosDireitos;
     enPassant           = novoEnPassant;
-    primeiroLanceFoito  = true;
+    if (iaJogando !== quemMoveu) primeiroLanceFoito = true;
 
     renderizar();
 }
@@ -671,6 +674,7 @@ function iniciarJogo() {
     pendingPromotion = null;
     invertido = false;
     primeiroLanceFoito = false;
+    _iaGen++;
 
     try { localStorage.removeItem("xadrezEstado"); } catch (e) {}
 
@@ -683,6 +687,16 @@ function iniciarJogo() {
     document.querySelectorAll(".btn-ia, .btn-nivel").forEach(btn => {
         btn.disabled = false;
     });
+
+    // Preserva as configurações de IA e Nível visualmente
+    document.querySelectorAll(".btn-ia").forEach(btn => btn.classList.remove("ativo"));
+    const _corAtual = iaJogando === null ? "" : iaJogando;
+    const _btnIA = document.querySelector(`.btn-ia[data-cor="${_corAtual}"]`);
+    if (_btnIA) _btnIA.classList.add("ativo");
+
+    document.querySelectorAll(".btn-nivel").forEach(btn => btn.classList.remove("ativo"));
+    const _btnNivel = document.querySelector(`.btn-nivel[data-nivel="${nivelIA}"]`);
+    if (_btnNivel) _btnNivel.classList.add("ativo");
 
     renderizar();
 }

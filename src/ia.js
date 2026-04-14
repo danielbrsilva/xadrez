@@ -431,7 +431,11 @@ function agendarMovimentoIA() {
     if (!iaJogando || iaJogando !== turno) return;
     if (status !== 'playing' && status !== 'check') return;
 
+    const genAtual = _iaGen;
+
     setTimeout(() => {
+        // Se o jogo foi reiniciado enquanto a IA pensava, ignora o lance
+        if (_iaGen !== genAtual) return;
         if (!iaJogando || iaJogando !== turno) return;
         if (status !== 'playing' && status !== 'check') return;
 
